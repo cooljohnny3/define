@@ -1,5 +1,6 @@
 # Define
-A command line dictionary application using the [Free Dictionary API](https://dictionaryapi.dev/). Written in Rust using reqwest, Tokio and serde crates.
+A command line dictionary application using the [Free Dictionary API](https://dictionaryapi.dev/).  
+Written in Rust using reqwest, Tokio and serde crates.
 
 # Example Usage
 ```
