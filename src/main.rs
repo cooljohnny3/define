@@ -8,7 +8,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let matches = App::new("Define")
                     .version(env!("CARGO_PKG_VERSION"))
                     .author("John Brehm (Cooljohnny3)")
-                    .about("A command line dictionary application using the Free Dictionary API.")
+                    .about("A command line dictionary application using the Free Dictionary API. (https://dictionaryapi.dev/)")
                     .arg(Arg::with_name("WORD")
                         .help("Word to search for")
                         .required(true))
@@ -48,42 +48,49 @@ async fn get_word(word: String, code: String) -> Result<Vec<Word>, reqwest::Erro
 #[derive(Deserialize, Debug)]
 struct Word {
     word: String,
-    phonetics: Vec<Phonetic>,
+    origin: Option<String>,
+    phonetics: Option<Vec<Phonetic>>,
     meanings: Vec<Meaning>,
 }
 
 impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Phonetics
         let mut phonetics: String = String::new();
+        if let Some(phonetics_array)  = &self.phonetics {
+            if let Some(_) = phonetics_array[0].text {
+                phonetics.push('[');
+                phonetics.push_str(&phonetics_array[0].to_string());
 
-        phonetics.push_str(&self.phonetics[0].to_string());
-
-        for i in 1..self.phonetics.len() {
-            phonetics.push_str(", ");
-            phonetics.push_str(&self.phonetics[i].to_string());
+                for i in 1..phonetics_array.len() {
+                    phonetics.push_str(", ");
+                    phonetics.push_str(&phonetics_array[i].to_string());
+                }
+                phonetics.push(']');
+            }
         }
 
+        // Meanings
         let mut meanings: String = String::new();
-
         meanings.push_str(&self.meanings[0].to_string());
 
         for i in 1..self.meanings.len() {
             meanings.push_str(&self.meanings[i].to_string());
         }
 
-        write!(f, "{} [{}]{}", self.word, phonetics, meanings)
+        write!(f, "{} {}{}{}", self.word, phonetics, self.origin.as_ref().unwrap_or(&String::from("")), meanings)
     }
 }
 
 #[derive(Deserialize, Debug)]
 struct Phonetic {
-    text: String,
-    audio: String,
+    text: Option<String>,
+    audio: Option<String>,
 }
 
 impl fmt::Display for Phonetic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.text)
+        write!(f, "{}", self.text.as_ref().unwrap_or(&String::from("")))
     }
 }
 
@@ -220,18 +227,75 @@ mod tests {
         }).collect()
     }
 
-    #[test]
-    fn top1000_test() {
+    fn get_en_us_json() {
         use std::fs;
-        use rand::Rng;
         
-        let words = fs::read_to_string("./top1000.txt").expect("Error reading top1000.txt");
+        let words = fs::read_to_string("./tests/en_US_words.txt")
+            .expect("Error reading en_US_words.txt");
         let words = words_by_line(&words);
+        fs::File::create("./tests/en_US/en_US_json.txt")
+            .expect("Error creating file: en_US_json.txt");
         
-        let mut rng = rand::thread_rng();
-        for _ in 1..5 {
-            let temp = rng.gen_range(0..999);
-            tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
+        let mut contents = String::new();
+        for i in 0..100 {
+            let word = words[i][0];
+            println!("{}", word);
+            let response = tokio_test::block_on(reqwest::get(
+                format!("https://api.dictionaryapi.dev/api/v2/entries/en_US/{}",
+                word
+            ))).unwrap();
+            let json_string = tokio_test::block_on(response.text()).unwrap();
+            contents.push_str(&json_string);
+            contents.push_str("\n");
+        }
+        fs::write("./tests/en_US/en_US_json.txt", contents).expect("failed to write");
+    }
+
+    #[test]
+    fn en_us_ser_tests() {
+        use std::fs;
+
+        if !std::path::Path::new("./tests/en_US/en_US_json.txt").exists() {
+            get_en_us_json();
+        }
+        
+        let cases = fs::read_to_string(
+            "./tests/en_US/en_US_json.txt")
+            .expect("Error reading en_US_json.txt");
+        let cases = words_by_line(&cases);
+        
+        for i in 0..cases.len() {
+            println!("{}", cases[i][0]);
+            let _: Vec<Word> = serde_json::from_str(cases[i][0]).unwrap();
         }
     }
+
+    // fn get_es_tests() {
+    //     use std::fs;
+    //     use rand::Rng;
+        
+    //     let words = fs::read_to_string("./top1000.txt").expect("Error reading top1000.txt");
+    //     let words = words_by_line(&words);
+        
+    //     let mut rng = rand::thread_rng();
+    //     for _ in 1..5 {
+    //         let temp = rng.gen_range(0..999);
+    //         tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
+    //     }
+    // }
+
+    // #[test]
+    // fn es_tests() {
+    //     use std::fs;
+    //     use rand::Rng;
+        
+    //     let words = fs::read_to_string("./top1000.txt").expect("Error reading top1000.txt");
+    //     let words = words_by_line(&words);
+        
+    //     let mut rng = rand::thread_rng();
+    //     for _ in 1..5 {
+    //         let temp = rng.gen_range(0..999);
+    //         tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
+    //     }
+    // }
 }
