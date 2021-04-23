@@ -1,27 +1,43 @@
 use serde::Deserialize;
 use std::env;
 use std::fmt;
+use clap::{App, Arg};
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
-    let args: Vec<String> = env::args().collect();
-    let thing = get_word(String::from(&args[1])).await;
+    let matches = App::new("Define")
+                    .version(env!("CARGO_PKG_VERSION"))
+                    .author("John Brehm (Cooljohnny3)")
+                    .about("A command line dictionary application using the Free Dictionary API.")
+                    .arg(Arg::with_name("WORD")
+                        .help("Word to search for")
+                        .required(true))
+                    .arg(Arg::with_name("language_code")
+                        .short("l")
+                        .long("language_code")
+                        .value_name("CODE")
+                        .help("Sets the language to search in. default=en_US (Not yet supported)"))
+                    .get_matches();
+
+    let word = matches.value_of("WORD").expect("Invalid word");
+    let code = matches.value_of("language_code").unwrap_or("en_US");
+    let thing = get_word(String::from(word), String::from(code)).await;
     match thing {
         Ok(def) => {
             print!("{}", &def[0]);
             Ok(())
         }
         Err(e) => {
-            println!("Error: Word not found. {}", e);
+            println!("Error: Word not found.");
             Err(e)
         },
     }
 }
 
-async fn get_word(word: String) -> Result<Vec<Word>, reqwest::Error> {
+async fn get_word(word: String, code: String) -> Result<Vec<Word>, reqwest::Error> {
     let response: Vec<Word> = reqwest::get(format!(
-        "https://api.dictionaryapi.dev/api/v2/entries/en_US/{}",
-        word
+        "https://api.dictionaryapi.dev/api/v2/entries/{}/{}",
+        code, word
     ))
     .await?
     .json()
@@ -215,7 +231,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         for _ in 1..5 {
             let temp = rng.gen_range(0..999);
-            tokio_test::block_on(get_word(words[temp][0].to_owned())).unwrap();
+            tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
         }
     }
 }
