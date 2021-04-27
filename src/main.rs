@@ -140,97 +140,6 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn word_test1() {
-        let case1: Word = serde_json::from_str(
-            r#"  {
-            "word": "hello",
-            "phonetics": [
-              {
-                "text": "/həˈloʊ/",
-                "audio": "https://lex-audio.useremarkable.com/mp3/hello_us_1_rr.mp3"
-              },
-              {
-                "text": "/hɛˈloʊ/",
-                "audio": "https://lex-audio.useremarkable.com/mp3/hello_us_2_rr.mp3"
-              }
-            ],
-            "meanings": [
-              {
-                "partOfSpeech": "noun",
-                "definitions": [
-                  {
-                    "definition": "An utterance of “hello”; a greeting.",
-                    "synonyms": [
-                      "greeting",
-                      "welcome",
-                      "salutation",
-                      "saluting",
-                      "hailing",
-                      "address",
-                      "hello",
-                      "hallo"
-                    ],
-                    "example": "she was getting polite nods and hellos from people"
-                  }
-                ]
-              },
-              {
-                "partOfSpeech": "intransitive verb",
-                "definitions": [
-                  {
-                    "definition": "Say or shout “hello”; greet someone.",
-                    "example": "I pressed the phone button and helloed"
-                  }
-                ]
-              },
-              {
-                "partOfSpeech": "exclamation",
-                "definitions": [
-                  {
-                    "definition": "Used as a greeting or to begin a phone conversation.",
-                    "example": "hello there, Katie!"
-                  }
-                ]
-              }
-            ]
-          }"#,
-        )
-        .unwrap();
-        assert_eq!(
-            case1.to_string(),
-            "hello [/həˈloʊ/, /hɛˈloʊ/]\
-        \nnoun\
-            \n\t• An utterance of “hello”; a greeting.\
-        \nintransitive verb\
-            \n\t• Say or shout “hello”; greet someone.\
-        \nexclamation\
-            \n\t• Used as a greeting or to begin a phone conversation."
-        )
-    }
-
-    #[test]
-    fn word_test2() {
-        let case1: Word = serde_json::from_str(
-            r#"{"word":"dog","phonetics":[{"text":"/dɔɡ/","audio":"https://lex-audio.useremarkable.com/mp3/dog_us_1_rr.mp3"}],"meanings":[{"partOfSpeech":"transitive verb","definitions":[{"definition":"Follow (someone or their movements) closely and persistently.","synonyms":["pursue","follow","stalk","track","trail","shadow","hound"],"example":"photographers seemed to dog her every step"},{"definition":"Act lazily; fail to try one's hardest."},{"definition":"Grip (something) with a mechanical device.","example":"she has dogged the door shut"}]},{"partOfSpeech":"noun","definitions":[{"definition":"A domesticated carnivorous mammal that typically has a long snout, an acute sense of smell, nonretractable claws, and a barking, howling, or whining voice.","synonyms":["canine","hound"],"example":"‘All dogs have an intense sense of smell, and every dog likes to sniff,’ Smith said."},{"definition":"An unpleasant, contemptible, or wicked man."},{"definition":"A mechanical device for gripping."},{"definition":"Feet.","synonyms":["tootsie","trotter"]},{"definition":"short for firedog"}]}]}"#,
-        )
-        .unwrap();
-        assert_eq!(
-            case1.to_string(),
-            "dog [/dɔɡ/]\
-            \ntransitive verb\
-                \n\t• Follow (someone or their movements) closely and persistently.\
-                \n\t• Act lazily; fail to try one's hardest.\
-                \n\t• Grip (something) with a mechanical device.\
-            \nnoun\
-                \n\t• A domesticated carnivorous mammal that typically has a long snout, an acute sense of smell, nonretractable claws, and a barking, howling, or whining voice.\
-                \n\t• An unpleasant, contemptible, or wicked man.\
-                \n\t• A mechanical device for gripping.\
-                \n\t• Feet.\
-                \n\t• short for firedog"
-        )
-    }
-
     fn read_from_file(path: &str) -> io::Lines<io::BufReader<File>> {
         let f = File::open(path)
                     .expect(format!("Error reading {}", path).as_str());
@@ -263,6 +172,7 @@ mod tests {
     }
     
     // en_US
+    // Tests if succesful responses are serialized correctly
     #[test]
     fn en_us_ser_tests() {
         if !std::path::Path::new("./tests/en_US/en_US_json.txt").exists() {
@@ -279,8 +189,9 @@ mod tests {
     }
 
     // es
+    // Tests if succesful responses are serialized correctly
     #[test]
-    fn es_tests() {
+    fn es_ser_tests() {
         if !std::path::Path::new("./tests/es/es_json.txt").exists() {
             println!("Downloading words...");
             get_json("es");
