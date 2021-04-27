@@ -4,7 +4,7 @@ use std::fmt;
 use clap::{App, Arg};
 
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
+async fn main() -> Result<(), String> {
     let matches = App::new("Define")
                     .version(env!("CARGO_PKG_VERSION"))
                     .author("John Brehm (Cooljohnny3)")
@@ -28,8 +28,15 @@ async fn main() -> Result<(), reqwest::Error> {
             Ok(())
         }
         Err(e) => {
-            println!("Error: Word not found.");
-            Err(e)
+            let err;
+            if e.is_connect() {
+                err = Err(String::from("Connection Error"));
+            } else if e.status() == None {
+                err = Err(String::from("Word not found"));
+            } else {
+                err = Err(String::from("Unknown Error"));
+            }
+            err
         },
     }
 }
