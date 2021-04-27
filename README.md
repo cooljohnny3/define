@@ -1,6 +1,8 @@
 # Define
 A command line dictionary application using the [Free Dictionary API](https://dictionaryapi.dev/). Written in Rust using reqwest, Tokio and serde crates.
 
+Supports en_US and es language codes.
+
 # Example Usage
 ```
 > define hello

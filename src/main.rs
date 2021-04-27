@@ -16,7 +16,7 @@ async fn main() -> Result<(), String> {
                         .short("l")
                         .long("language_code")
                         .value_name("CODE")
-                        .help("Sets the language to search in. default=en_US (Not yet supported)"))
+                        .help("Sets the language to search in. Supported codes (en_US, es). default=en_US"))
                     .get_matches();
 
     let word = matches.value_of("WORD").expect("Invalid word");
