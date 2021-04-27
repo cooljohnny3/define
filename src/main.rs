@@ -128,6 +128,9 @@ impl fmt::Display for Definition {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{self, BufRead};
+    use std::fs::{self, File};
+
     use super::*;
 
     #[test]
@@ -221,81 +224,66 @@ mod tests {
         )
     }
 
-    fn words_by_line<'a>(s: &'a str) -> Vec<Vec<&'a str>> {
-        s.lines().map(|line| {
-            line.split_whitespace().collect()
-        }).collect()
+    fn read_from_file(path: &str) -> io::Lines<io::BufReader<File>> {
+        let f = File::open(path)
+                    .expect(format!("Error reading {}", path).as_str());
+       io::BufReader::new(f).lines()
     }
 
-    fn get_en_us_json() {
-        use std::fs;
+    fn get_json(code: &str) {
+        use fs::OpenOptions;
+        use io::Write;
+
+        let words = read_from_file(format!("./tests/{}/{}_words.txt", code, code).as_str());
+        File::create(format!("./tests/{}/{}_json.txt", code, code).as_str())
+            .expect(format!("Could not create {}_json.txt", code).as_str());
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(format!("./tests/{}/{}_json.txt", code, code).as_str())
+            .unwrap();
         
-        let words = fs::read_to_string("./tests/en_US_words.txt")
-            .expect("Error reading en_US_words.txt");
-        let words = words_by_line(&words);
-        fs::File::create("./tests/en_US/en_US_json.txt")
-            .expect("Error creating file: en_US_json.txt");
-        
-        let mut contents = String::new();
-        for i in 0..100 {
-            let word = words[i][0];
-            println!("{}", word);
+        for word in words {
+            let word = word.unwrap();
+            println!("Downloading: {}", word);
             let response = tokio_test::block_on(reqwest::get(
-                format!("https://api.dictionaryapi.dev/api/v2/entries/en_US/{}",
-                word
+                format!("https://api.dictionaryapi.dev/api/v2/entries/{}/{}",
+                code, word
             ))).unwrap();
             let json_string = tokio_test::block_on(response.text()).unwrap();
-            contents.push_str(&json_string);
-            contents.push_str("\n");
+            writeln!(file, "{}", json_string)
+                .expect(format!("Failed to write {} result to file", word).as_str());
         }
-        fs::write("./tests/en_US/en_US_json.txt", contents).expect("failed to write");
     }
-
+    
+    // en_US
     #[test]
     fn en_us_ser_tests() {
-        use std::fs;
-
         if !std::path::Path::new("./tests/en_US/en_US_json.txt").exists() {
-            get_en_us_json();
+            println!("Downloading words...");
+            get_json("en_US");
         }
-        
-        let cases = fs::read_to_string(
-            "./tests/en_US/en_US_json.txt")
-            .expect("Error reading en_US_json.txt");
-        let cases = words_by_line(&cases);
-        
-        for i in 0..cases.len() {
-            println!("{}", cases[i][0]);
-            let _: Vec<Word> = serde_json::from_str(cases[i][0]).unwrap();
+
+        let lines = read_from_file("./tests/en_US/en_US_json.txt");
+
+        for line in lines {
+            let word: Vec<Word> = serde_json::from_str(line.unwrap().as_str()).unwrap();
+            println!("Testing: {}", word[0].word);
         }
     }
 
-    // fn get_es_tests() {
-    //     use std::fs;
-    //     use rand::Rng;
-        
-    //     let words = fs::read_to_string("./top1000.txt").expect("Error reading top1000.txt");
-    //     let words = words_by_line(&words);
-        
-    //     let mut rng = rand::thread_rng();
-    //     for _ in 1..5 {
-    //         let temp = rng.gen_range(0..999);
-    //         tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
-    //     }
-    // }
+    // es
+    #[test]
+    fn es_tests() {
+        if !std::path::Path::new("./tests/es/es_json.txt").exists() {
+            println!("Downloading words...");
+            get_json("es");
+        }
 
-    // #[test]
-    // fn es_tests() {
-    //     use std::fs;
-    //     use rand::Rng;
-        
-    //     let words = fs::read_to_string("./top1000.txt").expect("Error reading top1000.txt");
-    //     let words = words_by_line(&words);
-        
-    //     let mut rng = rand::thread_rng();
-    //     for _ in 1..5 {
-    //         let temp = rng.gen_range(0..999);
-    //         tokio_test::block_on(get_word(words[temp][0].to_owned(), String::from("en_US"))).unwrap();
-    //     }
-    // }
+        let lines = read_from_file("./tests/es/es_json.txt");
+
+        for line in lines {
+            let word: Vec<Word> = serde_json::from_str(line.unwrap().as_str()).unwrap();
+            println!("Testing: {}", word[0].word);
+        }
+    }
 }
